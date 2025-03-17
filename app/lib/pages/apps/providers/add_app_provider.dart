@@ -144,10 +144,6 @@ class AddAppProvider extends ChangeNotifier {
           app.externalIntegration!.setupCompletedUrl ?? '';
       instructionsController.text =
           app.externalIntegration!.setupInstructionsFilePath ?? '';
-      setupCompletedController.text =
-          app.externalIntegration!.setupCompletedUrl ?? '';
-      instructionsController.text =
-          app.externalIntegration!.setupInstructionsFilePath ?? '';
       appHomeUrlController.text = app.externalIntegration!.appHomeUrl ?? '';
       if (app.externalIntegration!.authSteps.isNotEmpty) {
         authUrlController.text = app.externalIntegration!.authSteps.first.url;
@@ -170,9 +166,6 @@ class AddAppProvider extends ChangeNotifier {
       conversationPromptController.text = app.conversationPrompt!.decodeString;
     }
     if (app.proactiveNotification != null) {
-      selectedScopes = app.getNotificationScopesFromIds(capabilities
-          .firstWhere((element) => element.id == 'proactive_notification')
-          .notificationScopes);
       selectedScopes = app.getNotificationScopesFromIds(capabilities
           .firstWhere((element) => element.id == 'proactive_notification')
           .notificationScopes);
@@ -332,8 +325,12 @@ class AddAppProvider extends ChangeNotifier {
       }
       if (setupCompletedController.text !=
           app.externalIntegration!.setupCompletedUrl) {
+      if (setupCompletedController.text !=
+          app.externalIntegration!.setupCompletedUrl) {
         return true;
       }
+      if (instructionsController.text !=
+          app.externalIntegration!.setupInstructionsFilePath) {
       if (instructionsController.text !=
           app.externalIntegration!.setupInstructionsFilePath) {
         return true;
@@ -354,6 +351,12 @@ class AddAppProvider extends ChangeNotifier {
   }
 
   bool isFormValid() {
+    if (capabilitySelected() &&
+        (imageFile != null || imageUrl != null) &&
+        appCategory != null &&
+        termsAgreed) {
+      if (metadataKey.currentState != null &&
+          metadataKey.currentState!.validate()) {
     if (capabilitySelected() &&
         (imageFile != null || imageUrl != null) &&
         appCategory != null &&
@@ -384,9 +387,13 @@ class AddAppProvider extends ChangeNotifier {
           if (capability.id == 'proactive_notification') {
             isValid =
                 selectedScopes.isNotEmpty && selectedCapabilities.length > 1;
+            isValid =
+                selectedScopes.isNotEmpty && selectedCapabilities.length > 1;
           }
         }
         if (isPaid) {
+          isValid =
+              formKey.currentState!.validate() && selectePaymentPlan != null;
           isValid =
               formKey.currentState!.validate() && selectePaymentPlan != null;
         }
@@ -420,7 +427,11 @@ class AddAppProvider extends ChangeNotifier {
       }
       if (selectedCapabilities.length == 1 &&
           selectedCapabilities.first.id == 'proactive_notification') {
+      if (selectedCapabilities.length == 1 &&
+          selectedCapabilities.first.id == 'proactive_notification') {
         if (selectedScopes.isEmpty) {
+          AppSnackbar.showSnackbarError(
+              'Please select one more core capability for your app to proceed');
           AppSnackbar.showSnackbarError(
               'Please select one more core capability for your app to proceed');
           return false;
@@ -430,14 +441,22 @@ class AddAppProvider extends ChangeNotifier {
           (priceController.text.isEmpty || selectePaymentPlan == null)) {
         AppSnackbar.showSnackbarError(
             'Please select a payment plan and enter a price for your app');
+      if (isPaid &&
+          (priceController.text.isEmpty || selectePaymentPlan == null)) {
+        AppSnackbar.showSnackbarError(
+            'Please select a payment plan and enter a price for your app');
         return false;
       }
       if (!termsAgreed) {
         AppSnackbar.showSnackbarError(
             'Please agree to the terms and conditions to proceed');
+        AppSnackbar.showSnackbarError(
+            'Please agree to the terms and conditions to proceed');
         return false;
       }
       if (!capabilitySelected()) {
+        AppSnackbar.showSnackbarError(
+            'Please select at least one capability for your app');
         AppSnackbar.showSnackbarError(
             'Please select at least one capability for your app');
         return false;
@@ -451,11 +470,15 @@ class AddAppProvider extends ChangeNotifier {
           if (chatPromptController.text.isEmpty) {
             AppSnackbar.showSnackbarError(
                 'Please enter a chat prompt for your app');
+            AppSnackbar.showSnackbarError(
+                'Please enter a chat prompt for your app');
             return false;
           }
         }
         if (capability.title == 'memories') {
           if (conversationPromptController.text.isEmpty) {
+            AppSnackbar.showSnackbarError(
+                'Please enter a memory prompt for your app');
             AppSnackbar.showSnackbarError(
                 'Please enter a memory prompt for your app');
             return false;
@@ -465,9 +488,13 @@ class AddAppProvider extends ChangeNotifier {
           if (triggerEvent == null) {
             AppSnackbar.showSnackbarError(
                 'Please select a trigger event for your app');
+            AppSnackbar.showSnackbarError(
+                'Please select a trigger event for your app');
             return false;
           }
           if (webhookUrlController.text.isEmpty) {
+            AppSnackbar.showSnackbarError(
+                'Please enter a webhook URL for your app');
             AppSnackbar.showSnackbarError(
                 'Please enter a webhook URL for your app');
             return false;
@@ -480,6 +507,8 @@ class AddAppProvider extends ChangeNotifier {
       }
       return true;
     } else {
+      AppSnackbar.showSnackbarError(
+          'Please fill in all the required fields correctly');
       AppSnackbar.showSnackbarError(
           'Please fill in all the required fields correctly');
       return false;
@@ -499,9 +528,6 @@ class AddAppProvider extends ChangeNotifier {
       'private': !makeAppPublic,
       'id': updateAppId,
       'is_paid': isPaid,
-      'price': priceController.text.isNotEmpty
-          ? double.parse(priceController.text)
-          : 0.0,
       'price': priceController.text.isNotEmpty
           ? double.parse(priceController.text)
           : 0.0,
@@ -543,8 +569,6 @@ class AddAppProvider extends ChangeNotifier {
         }
         data['proactive_notification']['scopes'] =
             selectedScopes.map((e) => e.id).toList();
-        data['proactive_notification']['scopes'] =
-            selectedScopes.map((e) => e.id).toList();
       }
     }
     var success = false;
@@ -557,8 +581,6 @@ class AddAppProvider extends ChangeNotifier {
       clear();
       success = true;
     } else {
-      AppSnackbar.showSnackbarError(
-          'Failed to update app. Please try again later');
       AppSnackbar.showSnackbarError(
           'Failed to update app. Please try again later');
       success = false;
@@ -580,9 +602,6 @@ class AddAppProvider extends ChangeNotifier {
       'category': appCategory,
       'private': !makeAppPublic,
       'is_paid': isPaid,
-      'price': priceController.text.isNotEmpty
-          ? double.parse(priceController.text)
-          : 0.0,
       'price': priceController.text.isNotEmpty
           ? double.parse(priceController.text)
           : 0.0,
@@ -622,8 +641,6 @@ class AddAppProvider extends ChangeNotifier {
         if (data['proactive_notification'] == null) {
           data['proactive_notification'] = {};
         }
-        data['proactive_notification']['scopes'] =
-            selectedScopes.map((e) => e.id).toList();
         data['proactive_notification']['scopes'] =
             selectedScopes.map((e) => e.id).toList();
       }
@@ -666,8 +683,6 @@ class AddAppProvider extends ChangeNotifier {
       if (e.code == 'photo_access_denied') {
         AppSnackbar.showSnackbarError(
             'Photos permission denied. Please allow access to photos to select an image');
-        AppSnackbar.showSnackbarError(
-            'Photos permission denied. Please allow access to photos to select an image');
       }
       setIsUploadingThumbnail(false);
     }
@@ -699,8 +714,6 @@ class AddAppProvider extends ChangeNotifier {
       if (e.code == 'photo_access_denied') {
         AppSnackbar.showSnackbarError(
             'Photos permission denied. Please allow access to photos to select an image');
-        AppSnackbar.showSnackbarError(
-            'Photos permission denied. Please allow access to photos to select an image');
       }
     }
     checkValidity();
@@ -720,8 +733,6 @@ class AddAppProvider extends ChangeNotifier {
       if (e.code == 'photo_access_denied') {
         AppSnackbar.showSnackbarError(
             'Photos permission denied. Please allow access to photos to select an image');
-        AppSnackbar.showSnackbarError(
-            'Photos permission denied. Please allow access to photos to select an image');
       }
     }
     checkValidity();
@@ -732,6 +743,14 @@ class AddAppProvider extends ChangeNotifier {
     if (selectedCapabilities.contains(capability)) {
       selectedCapabilities.remove(capability);
     } else {
+      if (selectedCapabilities.length == 1 &&
+          selectedCapabilities.first.id == 'persona') {
+        AppSnackbar.showSnackbarError(
+            'Other capabilities cannot be selected with Persona');
+      } else if (selectedCapabilities.isNotEmpty &&
+          capability.id == 'persona') {
+        AppSnackbar.showSnackbarError(
+            'Persona cannot be selected with other capabilities');
       if (selectedCapabilities.length == 1 &&
           selectedCapabilities.first.id == 'persona') {
         AppSnackbar.showSnackbarError(
@@ -789,6 +808,8 @@ class AddAppProvider extends ChangeNotifier {
   bool capabilitySelected() {
     if (selectedCapabilities.length == 1 &&
         selectedCapabilities.first.id == 'proactive_notification') {
+    if (selectedCapabilities.length == 1 &&
+        selectedCapabilities.first.id == 'proactive_notification') {
       return false;
     }
     return selectedCapabilities.isNotEmpty;
@@ -829,9 +850,9 @@ class AddAppProvider extends ChangeNotifier {
 
   Future<void> generateDescription() async {
     setIsGenratingDescription(true);
-    var description = await getGenratedDescription(
+    var res = await getGenratedDescription(
         appNameController.text, appDescriptionController.text);
-    appDescriptionController.text = description.decodeString;
+    appDescriptionController.text = res.decodeString;
     checkValidity();
     setIsGenratingDescription(false);
     notifyListeners();
@@ -866,6 +887,17 @@ class AddAppProvider extends ChangeNotifier {
   Future<void> deleteApiKey(String appId, String keyId) async {
     await deleteApiKeyServer(appId, keyId);
     await loadApiKeys(appId);
+  }
+
+  void toggleCapability(String capability) {
+    if (selectedCapabilities.any((element) => element.id == capability)) {
+      selectedCapabilities.removeWhere((element) => element.id == capability);
+    } else {
+      selectedCapabilities
+          .add(capabilities.firstWhere((element) => element.id == capability));
+    }
+    checkValidity();
+    notifyListeners();
   }
 
   void toggleCapability(String capability) {

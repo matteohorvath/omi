@@ -5,10 +5,6 @@ import 'package:http/http.dart' as http;
 import 'package:omi/env/env.dart';
 
 import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:omi/env/env.dart';
-
-import 'dart:convert';
 import 'package:omi/backend/preferences.dart';
 import 'package:omi/backend/schema/app.dart';
 import 'package:omi/pages/apps/app_detail/app_detail.dart';
@@ -44,9 +40,14 @@ class _AddAppPageState extends State<AddAppPage> {
   final TextEditingController _promptController = TextEditingController();
   bool _isGenerating = false;
   String _generatedResult = '';
+  final TextEditingController _promptController = TextEditingController();
+  bool _isGenerating = false;
+  String _generatedResult = '';
 
   @override
   void initState() {
+    showSubmitAppConfirmation =
+        SharedPreferencesUtil().showSubmitAppConfirmation;
     showSubmitAppConfirmation =
         SharedPreferencesUtil().showSubmitAppConfirmation;
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
@@ -70,10 +71,10 @@ class _AddAppPageState extends State<AddAppPage> {
     });
 
     try {
-      final apiKey = const String.fromEnvironment('OPENAI_API_KEY');
+      
+      final apiKey = // TODO: Get API key from environment variables
       if (apiKey == null || apiKey.isEmpty) {
-        throw Exception(
-            'OpenAI API key not found. Please set OPENAI_API_KEY environment variable.');
+        throw Exception('OpenAI API key not found in environment variables');
       }
 
       final systemPrompt = '''
@@ -477,6 +478,9 @@ class _AddAppPageState extends State<AddAppPage> {
                       provider.isSubmitting
                           ? 'Submitting your app...'
                           : 'Hold on, we are preparing the form for you',
+                      provider.isSubmitting
+                          ? 'Submitting your app...'
+                          : 'Hold on, we are preparing the form for you',
                       style: const TextStyle(color: Colors.white),
                     ),
                   ],
@@ -504,9 +508,15 @@ class _AddAppPageState extends State<AddAppPage> {
                                   .pageOpened('App Submission Help');
                               launchUrl(Uri.parse(
                                   'https://omi.me/apps/introduction'));
+                              MixpanelManager()
+                                  .pageOpened('App Submission Help');
+                              launchUrl(Uri.parse(
+                                  'https://omi.me/apps/introduction'));
                             },
                             child: Container(
                               padding: const EdgeInsets.all(12.0),
+                              margin: const EdgeInsets.only(
+                                  left: 2.0, right: 2.0, top: 12, bottom: 8),
                               margin: const EdgeInsets.only(
                                   left: 2.0, right: 2.0, top: 12, bottom: 8),
                               decoration: BoxDecoration(
@@ -555,6 +565,40 @@ class _AddAppPageState extends State<AddAppPage> {
                               ),
                             ),
                           ),
+                          GestureDetector(
+                            onTap: _isGenerating ? null : _showPromptDialog,
+                            child: Container(
+                              padding: const EdgeInsets.all(12.0),
+                              margin: const EdgeInsets.only(
+                                  left: 2.0, right: 2.0, bottom: 14),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade900,
+                                borderRadius: BorderRadius.circular(16.0),
+                              ),
+                              child: ListTile(
+                                leading: _isGenerating
+                                    ? const SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                  Colors.white),
+                                        ),
+                                      )
+                                    : const Icon(Icons.auto_awesome,
+                                        color: Colors.white),
+                                title: Text(
+                                  _isGenerating
+                                      ? 'Generating App...'
+                                      : 'Generate App with AI',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            ),
+                          ),
                           const SizedBox(height: 18),
                           AppMetadataWidget(
                             pickImage: () async {
@@ -562,9 +606,13 @@ class _AddAppPageState extends State<AddAppPage> {
                             },
                             generatingDescription:
                                 provider.isGenratingDescription,
+                            generatingDescription:
+                                provider.isGenratingDescription,
                             allowPaidApps: provider.allowPaidApps,
                             appPricing: provider.isPaid ? 'Paid' : 'Free',
                             appNameController: provider.appNameController,
+                            appDescriptionController:
+                                provider.appDescriptionController,
                             appDescriptionController:
                                 provider.appDescriptionController,
                             categories: provider.categories,
@@ -572,9 +620,15 @@ class _AddAppPageState extends State<AddAppPage> {
                             imageFile: provider.imageFile,
                             category: provider
                                 .mapCategoryIdToName(provider.appCategory),
+                            category: provider
+                                .mapCategoryIdToName(provider.appCategory),
                           ),
                           provider.isPaid
                               ? PaymentDetailsWidget(
+                                  appPricingController:
+                                      provider.priceController,
+                                  paymentPlan: provider.mapPaymentPlanIdToName(
+                                      provider.selectePaymentPlan),
                                   appPricingController:
                                       provider.priceController,
                                   paymentPlan: provider.mapPaymentPlanIdToName(
@@ -598,6 +652,9 @@ class _AddAppPageState extends State<AddAppPage> {
                                     style: TextStyle(
                                         color: Colors.grey.shade300,
                                         fontSize: 16),
+                                    style: TextStyle(
+                                        color: Colors.grey.shade300,
+                                        fontSize: 16),
                                   ),
                                 ),
                                 const SizedBox(height: 12),
@@ -607,6 +664,8 @@ class _AddAppPageState extends State<AddAppPage> {
                                     scrollDirection: Axis.horizontal,
                                     itemCount:
                                         provider.thumbnailUrls.length + 1,
+                                    itemCount:
+                                        provider.thumbnailUrls.length + 1,
                                     itemBuilder: (context, index) {
                                       // Calculate dimensions to maintain 2:3 ratio
                                       final width = 120.0;
@@ -614,7 +673,12 @@ class _AddAppPageState extends State<AddAppPage> {
 
                                       if (index ==
                                           provider.thumbnailUrls.length) {
+                                      if (index ==
+                                          provider.thumbnailUrls.length) {
                                         return GestureDetector(
+                                          onTap: provider.isUploadingThumbnail
+                                              ? null
+                                              : provider.pickThumbnail,
                                           onTap: provider.isUploadingThumbnail
                                               ? null
                                               : provider.pickThumbnail,
@@ -623,13 +687,21 @@ class _AddAppPageState extends State<AddAppPage> {
                                             height: height,
                                             margin:
                                                 const EdgeInsets.only(right: 8),
+                                            margin:
+                                                const EdgeInsets.only(right: 8),
                                             decoration: BoxDecoration(
                                               color: Colors.grey.shade800,
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
                                               borderRadius:
                                                   BorderRadius.circular(8),
                                             ),
                                             child: provider.isUploadingThumbnail
                                                 ? Shimmer.fromColors(
+                                                    baseColor:
+                                                        Colors.grey[900]!,
+                                                    highlightColor:
+                                                        Colors.grey[800]!,
                                                     baseColor:
                                                         Colors.grey[900]!,
                                                     highlightColor:
@@ -642,12 +714,22 @@ class _AddAppPageState extends State<AddAppPage> {
                                                         borderRadius:
                                                             BorderRadius
                                                                 .circular(8),
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(8),
                                                       ),
+                                                      child: const Icon(
+                                                          Icons.photo,
+                                                          size: 32),
                                                       child: const Icon(
                                                           Icons.photo,
                                                           size: 32),
                                                     ),
                                                   )
+                                                : const Icon(
+                                                    Icons
+                                                        .add_photo_alternate_outlined,
+                                                    size: 32),
                                                 : const Icon(
                                                     Icons
                                                         .add_photo_alternate_outlined,
@@ -666,6 +748,10 @@ class _AddAppPageState extends State<AddAppPage> {
                                                       FullScreenImageViewer(
                                                     imageUrl: provider
                                                         .thumbnailUrls[index],
+                                                  builder: (context) =>
+                                                      FullScreenImageViewer(
+                                                    imageUrl: provider
+                                                        .thumbnailUrls[index],
                                                   ),
                                                 ),
                                               );
@@ -676,7 +762,16 @@ class _AddAppPageState extends State<AddAppPage> {
                                               imageBuilder:
                                                   (context, imageProvider) =>
                                                       Container(
+                                              imageUrl:
+                                                  provider.thumbnailUrls[index],
+                                              imageBuilder:
+                                                  (context, imageProvider) =>
+                                                      Container(
                                                 width: 120,
+                                                height:
+                                                    180, // 2:3 ratio (120 * 1.5)
+                                                margin: const EdgeInsets.only(
+                                                    right: 8),
                                                 height:
                                                     180, // 2:3 ratio (120 * 1.5)
                                                 margin: const EdgeInsets.only(
@@ -684,7 +779,11 @@ class _AddAppPageState extends State<AddAppPage> {
                                                 decoration: BoxDecoration(
                                                   borderRadius:
                                                       BorderRadius.circular(8),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
                                                   border: Border.all(
+                                                    color:
+                                                        const Color(0xFF424242),
                                                     color:
                                                         const Color(0xFF424242),
                                                     width: 1,
@@ -697,7 +796,11 @@ class _AddAppPageState extends State<AddAppPage> {
                                               ),
                                               placeholder: (context, url) =>
                                                   Shimmer.fromColors(
+                                              placeholder: (context, url) =>
+                                                  Shimmer.fromColors(
                                                 baseColor: Colors.grey[900]!,
+                                                highlightColor:
+                                                    Colors.grey[800]!,
                                                 highlightColor:
                                                     Colors.grey[800]!,
                                                 child: Container(
@@ -705,8 +808,13 @@ class _AddAppPageState extends State<AddAppPage> {
                                                   height: 180,
                                                   margin: const EdgeInsets.only(
                                                       right: 8),
+                                                  margin: const EdgeInsets.only(
+                                                      right: 8),
                                                   decoration: BoxDecoration(
                                                     color: Colors.black,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8),
                                                     borderRadius:
                                                         BorderRadius.circular(
                                                             8),
@@ -716,12 +824,19 @@ class _AddAppPageState extends State<AddAppPage> {
                                               errorWidget:
                                                   (context, url, error) =>
                                                       Container(
+                                              errorWidget:
+                                                  (context, url, error) =>
+                                                      Container(
                                                 width: 120,
                                                 height: 180,
                                                 margin: const EdgeInsets.only(
                                                     right: 8),
+                                                margin: const EdgeInsets.only(
+                                                    right: 8),
                                                 decoration: BoxDecoration(
                                                   color: Colors.grey[900],
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
                                                   borderRadius:
                                                       BorderRadius.circular(8),
                                                 ),
@@ -735,14 +850,22 @@ class _AddAppPageState extends State<AddAppPage> {
                                             child: GestureDetector(
                                               onTap: () => provider
                                                   .removeThumbnail(index),
+                                              onTap: () => provider
+                                                  .removeThumbnail(index),
                                               child: Container(
+                                                padding:
+                                                    const EdgeInsets.all(4),
                                                 padding:
                                                     const EdgeInsets.all(4),
                                                 decoration: BoxDecoration(
                                                   color: Colors.black
                                                       .withOpacity(0.6),
+                                                  color: Colors.black
+                                                      .withOpacity(0.6),
                                                   shape: BoxShape.circle,
                                                 ),
+                                                child: const Icon(Icons.close,
+                                                    size: 16),
                                                 child: const Icon(Icons.close,
                                                     size: 16),
                                               ),
@@ -773,11 +896,17 @@ class _AddAppPageState extends State<AddAppPage> {
                                     style: TextStyle(
                                         color: Colors.grey.shade300,
                                         fontSize: 16),
+                                    style: TextStyle(
+                                        color: Colors.grey.shade300,
+                                        fontSize: 16),
                                   ),
                                 ),
                                 const SizedBox(
                                   height: 10,
                                 ),
+                                const SizedBox(
+                                    height: 48,
+                                    child: CapabilitiesChipsWidget()),
                                 const SizedBox(
                                     height: 48,
                                     child: CapabilitiesChipsWidget()),
@@ -805,13 +934,19 @@ class _AddAppPageState extends State<AddAppPage> {
                                         color: Colors.grey.shade900,
                                         borderRadius:
                                             BorderRadius.circular(12.0),
+                                        borderRadius:
+                                            BorderRadius.circular(12.0),
                                       ),
                                       padding: const EdgeInsets.all(14.0),
                                       child: Column(
                                         children: [
                                           if (provider
                                               .isCapabilitySelectedById('chat'))
+                                          if (provider
+                                              .isCapabilitySelectedById('chat'))
                                             PromptTextField(
+                                              controller:
+                                                  provider.chatPromptController,
                                               controller:
                                                   provider.chatPromptController,
                                               label: 'Chat Prompt',
@@ -822,12 +957,20 @@ class _AddAppPageState extends State<AddAppPage> {
                                                   'memories') &&
                                               provider.isCapabilitySelectedById(
                                                   'chat'))
+                                          if (provider.isCapabilitySelectedById(
+                                                  'memories') &&
+                                              provider.isCapabilitySelectedById(
+                                                  'chat'))
                                             const SizedBox(
                                               height: 20,
                                             ),
                                           if (provider.isCapabilitySelectedById(
                                               'memories'))
+                                          if (provider.isCapabilitySelectedById(
+                                              'memories'))
                                             PromptTextField(
+                                              controller: provider
+                                                  .conversationPromptController,
                                               controller: provider
                                                   .conversationPromptController,
                                               label: 'Conversation Prompt',
@@ -842,6 +985,8 @@ class _AddAppPageState extends State<AddAppPage> {
                               ],
                             ),
                           const ExternalTriggerFieldsWidget(),
+                          if (provider.isCapabilitySelectedById(
+                              'proactive_notification'))
                           if (provider.isCapabilitySelectedById(
                               'proactive_notification'))
                             Column(
@@ -859,12 +1004,19 @@ class _AddAppPageState extends State<AddAppPage> {
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Padding(
                                         padding:
                                             const EdgeInsets.only(left: 8.0),
+                                        padding:
+                                            const EdgeInsets.only(left: 8.0),
                                         child: Text(
                                           'Notification Scopes',
+                                          style: TextStyle(
+                                              color: Colors.grey.shade300,
+                                              fontSize: 16),
                                           style: TextStyle(
                                               color: Colors.grey.shade300,
                                               fontSize: 16),
@@ -873,6 +1025,10 @@ class _AddAppPageState extends State<AddAppPage> {
                                       const SizedBox(
                                         height: 10,
                                       ),
+                                      const SizedBox(
+                                          height: 48,
+                                          child:
+                                              NotificationScopesChipsWidget()),
                                       const SizedBox(
                                           height: 48,
                                           child:
@@ -938,6 +1094,8 @@ class _AddAppPageState extends State<AddAppPage> {
             : Container(
                 padding: const EdgeInsets.only(
                     left: 30.0, right: 30, bottom: 50, top: 10),
+                padding: const EdgeInsets.only(
+                    left: 30.0, right: 30, bottom: 50, top: 10),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12.0),
                   color: Colors.grey.shade900,
@@ -973,7 +1131,13 @@ class _AddAppPageState extends State<AddAppPage> {
                                       MixpanelManager().publicAppSubmitted({
                                         'app_name':
                                             provider.appNameController.text,
+                                        'app_name':
+                                            provider.appNameController.text,
                                         'app_category': provider.appCategory,
+                                        'app_capabilities': provider
+                                            .capabilities
+                                            .map((e) => e.id)
+                                            .toList(),
                                         'app_capabilities': provider
                                             .capabilities
                                             .map((e) => e.id)
@@ -984,7 +1148,13 @@ class _AddAppPageState extends State<AddAppPage> {
                                       MixpanelManager().privateAppSubmitted({
                                         'app_name':
                                             provider.appNameController.text,
+                                        'app_name':
+                                            provider.appNameController.text,
                                         'app_category': provider.appCategory,
+                                        'app_capabilities': provider
+                                            .capabilities
+                                            .map((e) => e.id)
+                                            .toList(),
                                         'app_capabilities': provider
                                             .capabilities
                                             .map((e) => e.id)
@@ -995,6 +1165,9 @@ class _AddAppPageState extends State<AddAppPage> {
                                     SharedPreferencesUtil()
                                             .showSubmitAppConfirmation =
                                         showSubmitAppConfirmation;
+                                    SharedPreferencesUtil()
+                                            .showSubmitAppConfirmation =
+                                        showSubmitAppConfirmation;
                                     Navigator.pop(context);
                                     String? appId = await provider.submitApp();
                                     App? app;
@@ -1002,11 +1175,22 @@ class _AddAppPageState extends State<AddAppPage> {
                                       app = await context
                                           .read<AppProvider>()
                                           .getAppFromId(appId);
+                                      app = await context
+                                          .read<AppProvider>()
+                                          .getAppFromId(appId);
                                     }
+                                    var paymentProvider =
+                                        context.read<PaymentMethodProvider>();
                                     var paymentProvider =
                                         context.read<PaymentMethodProvider>();
                                     paymentProvider.getPaymentMethodsStatus();
 
+                                    if (app != null &&
+                                        mounted &&
+                                        context.mounted) {
+                                      if (app.isPaid &&
+                                          paymentProvider.activeMethod ==
+                                              null) {
                                     if (app != null &&
                                         mounted &&
                                         context.mounted) {
@@ -1019,6 +1203,8 @@ class _AddAppPageState extends State<AddAppPage> {
                                             padding: const EdgeInsets.all(20),
                                             decoration: BoxDecoration(
                                               color: Colors.grey.shade900,
+                                              borderRadius:
+                                                  const BorderRadius.vertical(
                                               borderRadius:
                                                   const BorderRadius.vertical(
                                                 top: Radius.circular(20),
@@ -1035,7 +1221,15 @@ class _AddAppPageState extends State<AddAppPage> {
                                                     margin:
                                                         const EdgeInsets.only(
                                                             bottom: 20),
+                                                    margin:
+                                                        const EdgeInsets.only(
+                                                            bottom: 20),
                                                     decoration: BoxDecoration(
+                                                      color:
+                                                          Colors.grey.shade700,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              2),
                                                       color:
                                                           Colors.grey.shade700,
                                                       borderRadius:
@@ -1049,6 +1243,8 @@ class _AddAppPageState extends State<AddAppPage> {
                                                     style: TextStyle(
                                                       color: Colors.white,
                                                       fontSize: 24,
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                       fontWeight:
                                                           FontWeight.bold,
                                                     ),
@@ -1068,8 +1264,13 @@ class _AddAppPageState extends State<AddAppPage> {
                                                     borderRadius:
                                                         BorderRadius.circular(
                                                             12),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
                                                     onPressed: () {
                                                       Navigator.pop(ctx);
+                                                      routeToPage(context,
+                                                          const PaymentsPage());
                                                       routeToPage(context,
                                                           const PaymentsPage());
                                                     },
@@ -1079,6 +1280,8 @@ class _AddAppPageState extends State<AddAppPage> {
                                                         color: Colors.black,
                                                         fontWeight:
                                                             FontWeight.w600,
+                                                        fontWeight:
+                                                            FontWeight.w600,
                                                       ),
                                                     ),
                                                   ),
@@ -1086,14 +1289,23 @@ class _AddAppPageState extends State<AddAppPage> {
                                                   CupertinoButton(
                                                     onPressed: () =>
                                                         Navigator.pop(ctx),
+                                                    onPressed: () =>
+                                                        Navigator.pop(ctx),
                                                     child: Text(
                                                       'Maybe Later',
                                                       style: TextStyle(
                                                         color: Colors
                                                             .grey.shade400,
+                                                        color: Colors
+                                                            .grey.shade400,
                                                       ),
                                                     ),
                                                   ),
+                                                  SizedBox(
+                                                      height:
+                                                          MediaQuery.of(context)
+                                                              .padding
+                                                              .bottom),
                                                   SizedBox(
                                                       height:
                                                           MediaQuery.of(context)
@@ -1106,6 +1318,8 @@ class _AddAppPageState extends State<AddAppPage> {
                                         );
                                       } else {
                                         Navigator.pop(context);
+                                        routeToPage(
+                                            context, AppDetailPage(app: app));
                                         routeToPage(
                                             context, AppDetailPage(app: app));
                                       }
@@ -1123,6 +1337,9 @@ class _AddAppPageState extends State<AddAppPage> {
                     padding: const EdgeInsets.all(12.0),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12.0),
+                      color: provider.isValid
+                          ? Colors.white
+                          : Colors.grey.shade700,
                       color: provider.isValid
                           ? Colors.white
                           : Colors.grey.shade700,
