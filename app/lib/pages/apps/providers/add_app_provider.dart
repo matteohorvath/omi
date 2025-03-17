@@ -144,6 +144,10 @@ class AddAppProvider extends ChangeNotifier {
           app.externalIntegration!.setupCompletedUrl ?? '';
       instructionsController.text =
           app.externalIntegration!.setupInstructionsFilePath ?? '';
+      setupCompletedController.text =
+          app.externalIntegration!.setupCompletedUrl ?? '';
+      instructionsController.text =
+          app.externalIntegration!.setupInstructionsFilePath ?? '';
       appHomeUrlController.text = app.externalIntegration!.appHomeUrl ?? '';
       if (app.externalIntegration!.authSteps.isNotEmpty) {
         authUrlController.text = app.externalIntegration!.authSteps.first.url;
@@ -166,6 +170,9 @@ class AddAppProvider extends ChangeNotifier {
       conversationPromptController.text = app.conversationPrompt!.decodeString;
     }
     if (app.proactiveNotification != null) {
+      selectedScopes = app.getNotificationScopesFromIds(capabilities
+          .firstWhere((element) => element.id == 'proactive_notification')
+          .notificationScopes);
       selectedScopes = app.getNotificationScopesFromIds(capabilities
           .firstWhere((element) => element.id == 'proactive_notification')
           .notificationScopes);
@@ -531,6 +538,9 @@ class AddAppProvider extends ChangeNotifier {
       'price': priceController.text.isNotEmpty
           ? double.parse(priceController.text)
           : 0.0,
+      'price': priceController.text.isNotEmpty
+          ? double.parse(priceController.text)
+          : 0.0,
       'payment_plan': selectePaymentPlan,
       'thumbnails': thumbnailIds,
     };
@@ -569,6 +579,8 @@ class AddAppProvider extends ChangeNotifier {
         }
         data['proactive_notification']['scopes'] =
             selectedScopes.map((e) => e.id).toList();
+        data['proactive_notification']['scopes'] =
+            selectedScopes.map((e) => e.id).toList();
       }
     }
     var success = false;
@@ -581,6 +593,8 @@ class AddAppProvider extends ChangeNotifier {
       clear();
       success = true;
     } else {
+      AppSnackbar.showSnackbarError(
+          'Failed to update app. Please try again later');
       AppSnackbar.showSnackbarError(
           'Failed to update app. Please try again later');
       success = false;
@@ -602,6 +616,9 @@ class AddAppProvider extends ChangeNotifier {
       'category': appCategory,
       'private': !makeAppPublic,
       'is_paid': isPaid,
+      'price': priceController.text.isNotEmpty
+          ? double.parse(priceController.text)
+          : 0.0,
       'price': priceController.text.isNotEmpty
           ? double.parse(priceController.text)
           : 0.0,
@@ -641,6 +658,8 @@ class AddAppProvider extends ChangeNotifier {
         if (data['proactive_notification'] == null) {
           data['proactive_notification'] = {};
         }
+        data['proactive_notification']['scopes'] =
+            selectedScopes.map((e) => e.id).toList();
         data['proactive_notification']['scopes'] =
             selectedScopes.map((e) => e.id).toList();
       }
@@ -683,6 +702,8 @@ class AddAppProvider extends ChangeNotifier {
       if (e.code == 'photo_access_denied') {
         AppSnackbar.showSnackbarError(
             'Photos permission denied. Please allow access to photos to select an image');
+        AppSnackbar.showSnackbarError(
+            'Photos permission denied. Please allow access to photos to select an image');
       }
       setIsUploadingThumbnail(false);
     }
@@ -714,6 +735,8 @@ class AddAppProvider extends ChangeNotifier {
       if (e.code == 'photo_access_denied') {
         AppSnackbar.showSnackbarError(
             'Photos permission denied. Please allow access to photos to select an image');
+        AppSnackbar.showSnackbarError(
+            'Photos permission denied. Please allow access to photos to select an image');
       }
     }
     checkValidity();
@@ -731,6 +754,8 @@ class AddAppProvider extends ChangeNotifier {
       notifyListeners();
     } on PlatformException catch (e) {
       if (e.code == 'photo_access_denied') {
+        AppSnackbar.showSnackbarError(
+            'Photos permission denied. Please allow access to photos to select an image');
         AppSnackbar.showSnackbarError(
             'Photos permission denied. Please allow access to photos to select an image');
       }
@@ -850,6 +875,8 @@ class AddAppProvider extends ChangeNotifier {
 
   Future<void> generateDescription() async {
     setIsGenratingDescription(true);
+    var res = await getGenratedDescription(
+        appNameController.text, appDescriptionController.text);
     var res = await getGenratedDescription(
         appNameController.text, appDescriptionController.text);
     appDescriptionController.text = res.decodeString;
