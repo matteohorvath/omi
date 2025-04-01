@@ -332,12 +332,8 @@ class AddAppProvider extends ChangeNotifier {
       }
       if (setupCompletedController.text !=
           app.externalIntegration!.setupCompletedUrl) {
-      if (setupCompletedController.text !=
-          app.externalIntegration!.setupCompletedUrl) {
         return true;
       }
-      if (instructionsController.text !=
-          app.externalIntegration!.setupInstructionsFilePath) {
       if (instructionsController.text !=
           app.externalIntegration!.setupInstructionsFilePath) {
         return true;
@@ -358,12 +354,6 @@ class AddAppProvider extends ChangeNotifier {
   }
 
   bool isFormValid() {
-    if (capabilitySelected() &&
-        (imageFile != null || imageUrl != null) &&
-        appCategory != null &&
-        termsAgreed) {
-      if (metadataKey.currentState != null &&
-          metadataKey.currentState!.validate()) {
     if (capabilitySelected() &&
         (imageFile != null || imageUrl != null) &&
         appCategory != null &&
@@ -394,23 +384,16 @@ class AddAppProvider extends ChangeNotifier {
           if (capability.id == 'proactive_notification') {
             isValid =
                 selectedScopes.isNotEmpty && selectedCapabilities.length > 1;
-            isValid =
-                selectedScopes.isNotEmpty && selectedCapabilities.length > 1;
           }
         }
         if (isPaid) {
           isValid =
               formKey.currentState!.validate() && selectePaymentPlan != null;
-          isValid =
-              formKey.currentState!.validate() && selectePaymentPlan != null;
         }
         return isValid;
-      } else {
-        return false;
       }
-    } else {
-      return false;
     }
+    return false;
   }
 
   bool validateForm() {
@@ -437,11 +420,7 @@ class AddAppProvider extends ChangeNotifier {
       }
       if (selectedCapabilities.length == 1 &&
           selectedCapabilities.first.id == 'proactive_notification') {
-      if (selectedCapabilities.length == 1 &&
-          selectedCapabilities.first.id == 'proactive_notification') {
         if (selectedScopes.isEmpty) {
-          AppSnackbar.showSnackbarError(
-              'Please select one more core capability for your app to proceed');
           AppSnackbar.showSnackbarError(
               'Please select one more core capability for your app to proceed');
           return false;
@@ -451,22 +430,14 @@ class AddAppProvider extends ChangeNotifier {
           (priceController.text.isEmpty || selectePaymentPlan == null)) {
         AppSnackbar.showSnackbarError(
             'Please select a payment plan and enter a price for your app');
-      if (isPaid &&
-          (priceController.text.isEmpty || selectePaymentPlan == null)) {
-        AppSnackbar.showSnackbarError(
-            'Please select a payment plan and enter a price for your app');
         return false;
       }
       if (!termsAgreed) {
         AppSnackbar.showSnackbarError(
             'Please agree to the terms and conditions to proceed');
-        AppSnackbar.showSnackbarError(
-            'Please agree to the terms and conditions to proceed');
         return false;
       }
       if (!capabilitySelected()) {
-        AppSnackbar.showSnackbarError(
-            'Please select at least one capability for your app');
         AppSnackbar.showSnackbarError(
             'Please select at least one capability for your app');
         return false;
@@ -478,8 +449,6 @@ class AddAppProvider extends ChangeNotifier {
       for (var capability in selectedCapabilities) {
         if (capability.title == 'chat') {
           if (chatPromptController.text.isEmpty) {
-            AppSnackbar.showSnackbarError(
-                'Please enter a chat prompt for your app');
             AppSnackbar.showSnackbarError(
                 'Please enter a chat prompt for your app');
             return false;
@@ -496,18 +465,13 @@ class AddAppProvider extends ChangeNotifier {
           if (triggerEvent == null) {
             AppSnackbar.showSnackbarError(
                 'Please select a trigger event for your app');
-            AppSnackbar.showSnackbarError(
-                'Please select a trigger event for your app');
             return false;
           }
           if (webhookUrlController.text.isEmpty) {
             AppSnackbar.showSnackbarError(
                 'Please enter a webhook URL for your app');
-            AppSnackbar.showSnackbarError(
-                'Please enter a webhook URL for your app');
             return false;
           }
-          // Setup completed URL is optional, so we don't validate it here
         }
       }
       if (appCategory == null) {
@@ -516,8 +480,6 @@ class AddAppProvider extends ChangeNotifier {
       }
       return true;
     } else {
-      AppSnackbar.showSnackbarError(
-          'Please fill in all the required fields correctly');
       AppSnackbar.showSnackbarError(
           'Please fill in all the required fields correctly');
       return false;
@@ -778,14 +740,6 @@ class AddAppProvider extends ChangeNotifier {
           capability.id == 'persona') {
         AppSnackbar.showSnackbarError(
             'Persona cannot be selected with other capabilities');
-      if (selectedCapabilities.length == 1 &&
-          selectedCapabilities.first.id == 'persona') {
-        AppSnackbar.showSnackbarError(
-            'Other capabilities cannot be selected with Persona');
-      } else if (selectedCapabilities.isNotEmpty &&
-          capability.id == 'persona') {
-        AppSnackbar.showSnackbarError(
-            'Persona cannot be selected with other capabilities');
       } else {
         selectedCapabilities.add(capability);
       }
@@ -835,12 +789,9 @@ class AddAppProvider extends ChangeNotifier {
   bool capabilitySelected() {
     if (selectedCapabilities.length == 1 &&
         selectedCapabilities.first.id == 'proactive_notification') {
-    if (selectedCapabilities.length == 1 &&
-        selectedCapabilities.first.id == 'proactive_notification') {
       return false;
-    } else {
-      return selectedCapabilities.isNotEmpty;
     }
+    return selectedCapabilities.isNotEmpty;
   }
 
   void setTriggerEvent(String? event) {
@@ -878,18 +829,17 @@ class AddAppProvider extends ChangeNotifier {
 
   Future<void> generateDescription() async {
     setIsGenratingDescription(true);
-    var res = await getGenratedDescription(
+    var description = await getGenratedDescription(
         appNameController.text, appDescriptionController.text);
-    var res = await getGenratedDescription(
-        appNameController.text, appDescriptionController.text);
-    appDescriptionController.text = res.decodeString;
+    appDescriptionController.text = description.decodeString;
     checkValidity();
     setIsGenratingDescription(false);
     notifyListeners();
   }
 
-  void setIsGenratingDescription(bool genrating) {
-    isGenratingDescription = genrating;
+  void setIsGenratingDescription(bool generating) {
+    isGenratingDescription = generating;
+    notifyListeners();
   }
 
   // API Keys methods
@@ -916,17 +866,6 @@ class AddAppProvider extends ChangeNotifier {
   Future<void> deleteApiKey(String appId, String keyId) async {
     await deleteApiKeyServer(appId, keyId);
     await loadApiKeys(appId);
-  }
-
-  void toggleCapability(String capability) {
-    if (selectedCapabilities.any((element) => element.id == capability)) {
-      selectedCapabilities.removeWhere((element) => element.id == capability);
-    } else {
-      selectedCapabilities
-          .add(capabilities.firstWhere((element) => element.id == capability));
-    }
-    checkValidity();
-    notifyListeners();
   }
 
   void toggleCapability(String capability) {
